@@ -1,25 +1,38 @@
-$.runScript = function() {
-    // Adobe Premiere Pro ExtendScript
+$.runScript = {
+    newSequenceFromProjectSelection: function () {
+        var viewIDs = app.getProjectViewIDs();
+        var viewSelection = app.getProjectViewSelection(viewIDs[0]);
 
-    // Define the active sequence
-    var sequence = app.project.activeSequence;
+        if (viewSelection) {
+            // Prompt user for sequence names
+            var sequenceName1 = prompt("Enter name for sequence 1:", "New Sequence 1");
+            var sequenceName2 = prompt("Enter name for sequence 2:", "New Sequence 2");
 
-    // Mute and export each audio track
-    if (sequence) {
-        for (var i = 0; i < sequence.audioTracks.numTracks; i++) {
-            var currentTrack = sequence.audioTracks[i];
-            
-            // Mute or unmute the track
-            var muteState = currentTrack.isMuted() ? 0 : 1;
-            currentTrack.setMute(muteState);
+            // Create sequences
+            var newSequence1 = app.project.createNewSequenceFromClips(sequenceName1, viewSelection, app.project.rootItem);
+            var newSequence2 = app.project.createNewSequenceFromClips(sequenceName2, viewSelection, app.project.rootItem);
 
-            // Export the sequence
-            var exportSettings = new ExportSettings();
-            exportSettings.fileName = sequence.name + "_export_" + i; // Use a unique name for each export
-            exportSettings.matchSequenceSettings = true; // Match sequence settings
-            app.project.exportSequence(sequence, exportSettings);
+            // Disable Audio Clips in each sequence
+            disableAudioClips(newSequence1);
+            disableAudioClips(newSequence2);
+
+            // Inform user
+            alert("Two sequences created successfully:\n" + sequenceName1 + "\n" + sequenceName2);
+        } else {
+            alert("No project items selected (or a bin was selected).");
         }
-    } else {
-        $._PPP_.updateEventPanel("No active sequence.");
     }
 };
+
+function disableAudioClips(sequence) {
+    var audioTracks = sequence.audioTracks;
+    for (var i = 0; i < audioTracks.numTracks; i++) {
+        var audioTrack = audioTracks[i];
+        for (var j = 0; j < audioTrack.clips.numItems; j++) {
+            var currentClip = audioTrack.clips[j];
+            if (currentClip && !currentClip.disabled) {
+                currentClip.disabled = true;
+            }
+        }
+    }
+}
